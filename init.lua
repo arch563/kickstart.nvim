@@ -358,7 +358,9 @@ require('lazy').setup({
       spec = {
         { '<leader>s', group = '[S]earch' },
         { '<leader>t', group = '[T]oggle' },
-        { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
+        { '<leader>h', group = 'Git [H]unk or [HA]rpoon', mode = { 'n' } },
+        { '<leader>h', group = 'Git [H]unk', mode = { 'v' } },
+        { '<leader>ha', group = '[HA]rpoon', mode = { 'n' } },
       },
     },
   },
@@ -903,7 +905,7 @@ require('lazy').setup({
     event = 'VeryLazy',
     priority = 1000,
     config = function()
-      require('catppuccin').setup {
+      require('gruvbox').setup {
         styles = {
           comments = { 'bold' },
         },
@@ -1065,7 +1067,87 @@ require('lazy').setup({
   -- you can continue same window with `<space>sr` which resumes last telescope search
   --
   { 'github/copilot.vim', lazy = true, event = 'InsertEnter' },
-  { 'sindrets/diffview.nvim', lazy = true, cmd = { 'DiffviewOpen', 'DiffviewClose', 'DiffviewToggleFiles', 'DiffviewFocusFiles' }, dependencies = 'nvim-lua/plenary.nvim' },
+  {
+    'sindrets/diffview.nvim',
+    lazy = true,
+    cmd = { 'DiffviewOpen', 'DiffviewClose', 'DiffviewToggleFiles', 'DiffviewFocusFiles' },
+    dependencies = 'nvim-lua/plenary.nvim',
+  },
+  {
+    'ThePrimeagen/harpoon',
+    branch = 'harpoon2',
+    dependencies = { 'nvim-lua/plenary.nvim', 'nvim-telescope/telescope.nvim' },
+    config = function()
+      require('harpoon').setup()
+    end,
+
+    keys = {
+      {
+        '<leader>has',
+        function()
+          require('harpoon'):list():add()
+        end,
+        desc = 'shoot harpoon',
+      },
+      {
+        '<leader>ham',
+        function()
+          local harpoon = require 'harpoon'
+          harpoon.ui:toggle_quick_menu(harpoon:list())
+        end,
+        desc = 'harpoon quick menu',
+      },
+      {
+        '<leader>ha1',
+        function()
+          require('harpoon'):list():select(1)
+        end,
+        desc = 'harpoon to file 1',
+      },
+      {
+        '<leader>ha2',
+        function()
+          require('harpoon'):list():select(2)
+        end,
+        desc = 'harpoon to file 2',
+      },
+      {
+        '<leader>ha3',
+        function()
+          require('harpoon'):list():select(3)
+        end,
+        desc = 'harpoon to file 3',
+      },
+      {
+        '<leader>ha4',
+        function()
+          require('harpoon'):list():select(4)
+        end,
+        desc = 'harpoon to file 4',
+      },
+      {
+        '<leader>ha5',
+        function()
+          require('harpoon'):list():select(5)
+        end,
+        desc = 'harpoon to file 5',
+      },
+      {
+        '<leader>han',
+        function()
+          require('harpoon'):list():next()
+        end,
+        desc = 'harpoon to next',
+      },
+      {
+        '<leader>hap',
+        function()
+          require('harpoon'):list():previous()
+        end,
+        desc = 'harpoon to previous',
+      },
+    },
+  },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
