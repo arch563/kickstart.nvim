@@ -156,7 +156,7 @@ vim.o.inccommand = 'split'
 vim.o.cursorline = true
 
 -- Minimal number of screen lines to keep above and below the cursor.
-vim.o.scrolloff = 10
+vim.o.scrolloff = 5
 
 -- if performing an operation that would fail due to unsaved changes in the buffer (like `:q`),
 -- instead raise a dialog asking if you wish to save the current file(s)
@@ -360,7 +360,7 @@ require('lazy').setup({
         { '<leader>t', group = '[T]oggle' },
         { '<leader>h', group = 'Git [H]unk or [HA]rpoon', mode = { 'n' } },
         { '<leader>h', group = 'Git [H]unk', mode = { 'v' } },
-        { '<leader>ha', group = '[HA]rpoon', mode = { 'n' } },
+        { '<leader>ha', group = 'Harpoon', mode = { 'n' }, desc = 'harpoon ' },
       },
     },
   },
@@ -919,7 +919,30 @@ require('lazy').setup({
   },
 
   -- Highlight todo, notes, etc in comments
-  { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
+  {
+    'folke/todo-comments.nvim',
+    event = 'VimEnter',
+    dependencies = { 'nvim-lua/plenary.nvim' },
+    opts = {
+      signs = true,
+      search = {
+        command = 'rg',
+        args = {
+          '--color=never',
+          '--no-heading',
+          '--with-filename',
+          '--line-number',
+          '--column',
+          '--glob=!node_modules',
+          '--glob=!utils',
+        },
+        -- regex that will be used to match keywords.
+        -- don't replace the (KEYWORDS) placeholder
+        pattern = [[\b(KEYWORDS):]], -- ripgrep regex
+        -- pattern = [[\b(KEYWORDS)\b]], -- match without the extra colon. You'll likely get false positives
+      },
+    },
+  },
 
   {
     'f-person/git-blame.nvim',
@@ -978,7 +1001,7 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'python' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       -- compilers will be set after plugin setup
@@ -1010,6 +1033,13 @@ require('lazy').setup({
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
   -- require 'kickstart.plugins.debug',
+  {
+    'nvim-treesitter/nvim-treesitter-context',
+    opts = function()
+      local tsc = require 'treesitter-context'
+      return { mode = 'cursor', max_lines = 3 }
+    end,
+  },
   require 'kickstart.plugins.indent_line',
   require 'kickstart.plugins.lint',
   require 'kickstart.plugins.autopairs',
@@ -1072,13 +1102,59 @@ require('lazy').setup({
     lazy = true,
     cmd = { 'DiffviewOpen', 'DiffviewClose', 'DiffviewToggleFiles', 'DiffviewFocusFiles' },
     dependencies = 'nvim-lua/plenary.nvim',
+    keys = {
+      {
+        '<leader>gdm',
+        function()
+          vim.cmd 'DiffviewOpen master'
+        end,
+        desc = 'diffview master',
+      },
+      {
+        '<leader>gda',
+        function()
+          vim.ui.input({ promp = 'Branch for diff: ' }, function(branch)
+            if branch and branch ~= '' then
+              vim.cmd('DiffviewOpen ' .. branch)
+            end
+          end)
+        end,
+        desc = 'diffview compare with specific branch',
+      },
+      {
+        '<leader>gdr',
+        function()
+          -- Change to the current file's directory
+          local dir = vim.fn.expand '%:p:h'
+          vim.cmd('tcd ' .. dir)
+
+          -- Check if we're in a git repo
+          local is_git_repo = vim.fn.system('git rev-parse --is-inside-work-tree'):gsub('%s+', '') == 'true'
+          if not is_git_repo then
+            vim.notify('Not inside a git repository!', vim.log.levels.ERROR)
+            return
+          end
+
+          -- Get current branch
+          local branch = vim.fn.system('git rev-parse --abbrev-ref HEAD'):gsub('%s+', '')
+          -- Get remote tracking branch
+          local remote = vim.fn.system('git rev-parse --abbrev-ref --symbolic-full-name @{u}'):gsub('%s+', '')
+          if remote == '' then
+            vim.notify('No remote tracking branch found for ' .. branch, vim.log.levels.WARN)
+            return
+          end
+          vim.cmd('DiffviewOpen ' .. remote)
+        end,
+        desc = 'Diffview: compare with remote tracking branch',
+      },
+    },
   },
   {
     'ThePrimeagen/harpoon',
     branch = 'harpoon2',
     dependencies = { 'nvim-lua/plenary.nvim', 'nvim-telescope/telescope.nvim' },
     config = function()
-      require('harpoon').setup()
+      require('harpoon'):setup { settings = { save_on_toggle = true } }
     end,
 
     keys = {
@@ -1146,8 +1222,20 @@ require('lazy').setup({
         end,
         desc = 'harpoon to previous',
       },
+      {
+        '<leader>har',
+        function()
+          local harpoon = require 'harpoon'
+          local list = harpoon:list()
+          for i = 5, 1, -1 do
+            harpoon:list():remove(i)
+          end
+        end,
+        desc = 'harpoon remove all (1-5)',
+      },
     },
   },
+  { 'dstein64/nvim-scrollview', event = 'VeryLazy', opts = {} },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
