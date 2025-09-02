@@ -1046,6 +1046,8 @@ require('lazy').setup({
   require 'kickstart.plugins.neo-tree',
   require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
   require 'kickstart.plugins.toggleterm',
+  require 'kickstart.plugins.python-nvim',
+
   {
     'kdheepak/lazygit.nvim',
     lazy = true,
@@ -1237,10 +1239,10 @@ require('lazy').setup({
     },
   },
   { 'dstein64/nvim-scrollview', event = 'VeryLazy', opts = {} },
-  vim.lsp.config('pyright', {settings = { 
-                              python= {pythonVersion = '3.12',}}}),
-  vim.lsp.enable('pyright')
-
+  vim.lsp.config('pyright', { settings = {
+    python = { pythonVersion = '3.12' },
+  } }),
+  vim.lsp.enable 'pyright',
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
