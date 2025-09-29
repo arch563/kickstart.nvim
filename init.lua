@@ -34,7 +34,7 @@ What is Kickstart?
 
     If you don't know anything about Lua, I recommend taking some time to read through
     a guide. One possible example which will only take 10-15 minutes:
-      - https://learnxinyminutes.com/docs/lua/
+      - https://learnxinyminutes.com/docs/lua/\k
 
     After understanding a bit more about Lua, you can use `:help lua-guide` as a
     reference for how Neovim integrates Lua.
@@ -100,8 +100,8 @@ vim.g.have_nerd_font = true -- [[ Setting options ]]
 -- vim.o.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
+vim.o.number = true -- Enable absolute line number
 vim.o.relativenumber = true
-
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
 
@@ -216,7 +216,7 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
   callback = function()
-    vim.highlight.on_yank()
+    vim.hl.on_yank()
   end,
 })
 
@@ -285,16 +285,6 @@ require('lazy').setup({
       },
     },
   },
-  -- {
-  --    'nvim-neo-tree/neo-tree.nvim',
-  --   branch = 'v3.x',
-  --   dependencies = {
-  --     'nvim-lua/plenary.nvim',
-  --     'MunifTanjim/nui.nvim',
-  --     'nvim-tree/nvim-web-devicons', -- optional, but recommended
-  --   },
-  --   lazy = false, -- neo-tree will lazily load itself
-  -- },
 
   -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
   --
@@ -427,6 +417,9 @@ require('lazy').setup({
         --   },
         -- },
         -- pickers = {}
+        defaults = {
+          path_display = { 'truncate' },
+        },
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
@@ -693,7 +686,7 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         -- clangd = {},
-        -- gopls = {},
+        -- gopls = {},\
         -- pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
@@ -944,18 +937,6 @@ require('lazy').setup({
     },
   },
 
-  {
-    'f-person/git-blame.nvim',
-    lazy = true,
-    event = 'BufReadPre',
-    opts = {
-      enabled = true,
-      message_template = ' <summary> • <date> • <author> • <<sha>>',
-      date_format = '%m-%d-%Y %H:%M:%S',
-      virtual_text_column = 1,
-    },
-  },
-
   { -- Collection of various small independent plugins/modules
     'echasnovski/mini.nvim',
     config = function()
@@ -1045,204 +1026,32 @@ require('lazy').setup({
   require 'kickstart.plugins.autopairs',
   require 'kickstart.plugins.neo-tree',
   require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
-  require 'kickstart.plugins.toggleterm',
-  require 'kickstart.plugins.python-nvim',
+  require 'custom.etc.keymaps',
+  { 'github/copilot.vim', enabled = false },
 
-  {
-    'kdheepak/lazygit.nvim',
-    lazy = true,
-    cmd = {
-      'LazyGit',
-      'LazyGitConfig',
-      'LazyGitCurrentFile',
-      'LazyGitFilter',
-      'LazyGitFilterCurrentFile',
-    },
-    -- optional for floating window border decoration
-    dependencies = {
-      'nvim-lua/plenary.nvim',
-    },
-    -- setting the keybinding for LazyGit with 'keys' is recommended in
-    -- order to load the plugin when the command is run for the first time
-    keys = {
-      -- Custom keymap: open LazyGit in the current file's directory in a new tab
-      {
-        '<leader>lg',
-        function()
-          local dir = vim.fn.expand '%:p:h'
-          vim.cmd 'LazyGitCurrentFile'
-        end,
-        desc = 'Open LazyGit in current file directory',
-      },
-    },
-  },
-  {
-    'rmagatti/auto-session',
-    lazy = false,
-
-    ---enables autocomplete for opts
-    ---@module "auto-session"
-    ---@type AutoSession.Config
-    opts = {
-      suppressed_dirs = { '~/', '~/Projects', '~/Downloads', '/' },
-      -- log_level = 'debug',
-    },
-  },
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  -- { import = 'custom.plugins' },
+  { import = 'custom.plugins' },
   --
   -- For additional information with loading, sourcing and examples see `:help lazy.nvim-🔌-plugin-spec`
   -- Or use telescope!
   -- In normal mode type `<space>sh` then write `lazy.nvim-plugin`
   -- you can continue same window with `<space>sr` which resumes last telescope search
-  --
-  { 'github/copilot.vim', lazy = true, event = 'InsertEnter' },
-  {
-    'sindrets/diffview.nvim',
-    lazy = true,
-    cmd = { 'DiffviewOpen', 'DiffviewClose', 'DiffviewToggleFiles', 'DiffviewFocusFiles' },
-    dependencies = 'nvim-lua/plenary.nvim',
-    keys = {
-      {
-        '<leader>gdm',
-        function()
-          vim.cmd 'DiffviewOpen master'
-        end,
-        desc = 'diffview master',
-      },
-      {
-        '<leader>gda',
-        function()
-          vim.ui.input({ promp = 'Branch for diff: ' }, function(branch)
-            if branch and branch ~= '' then
-              vim.cmd('DiffviewOpen ' .. branch)
-            end
-          end)
-        end,
-        desc = 'diffview compare with specific branch',
-      },
-      {
-        '<leader>gdr',
-        function()
-          -- Change to the current file's directory
-          local dir = vim.fn.expand '%:p:h'
-          vim.cmd('tcd ' .. dir)
 
-          -- Check if we're in a git repo
-          local is_git_repo = vim.fn.system('git rev-parse --is-inside-work-tree'):gsub('%s+', '') == 'true'
-          if not is_git_repo then
-            vim.notify('Not inside a git repository!', vim.log.levels.ERROR)
-            return
-          end
-
-          -- Get current branch
-          local branch = vim.fn.system('git rev-parse --abbrev-ref HEAD'):gsub('%s+', '')
-          -- Get remote tracking branch
-          local remote = vim.fn.system('git rev-parse --abbrev-ref --symbolic-full-name @{u}'):gsub('%s+', '')
-          if remote == '' then
-            vim.notify('No remote tracking branch found for ' .. branch, vim.log.levels.WARN)
-            return
-          end
-          vim.cmd('DiffviewOpen ' .. remote)
-        end,
-        desc = 'Diffview: compare with remote tracking branch',
-      },
-    },
-  },
-  {
-    'ThePrimeagen/harpoon',
-    branch = 'harpoon2',
-    dependencies = { 'nvim-lua/plenary.nvim', 'nvim-telescope/telescope.nvim' },
-    config = function()
-      require('harpoon'):setup { settings = { save_on_toggle = true } }
-    end,
-
-    keys = {
-      {
-        '<leader>has',
-        function()
-          require('harpoon'):list():add()
-        end,
-        desc = 'shoot harpoon',
-      },
-      {
-        '<leader>ham',
-        function()
-          local harpoon = require 'harpoon'
-          harpoon.ui:toggle_quick_menu(harpoon:list())
-        end,
-        desc = 'harpoon quick menu',
-      },
-      {
-        '<leader>ha1',
-        function()
-          require('harpoon'):list():select(1)
-        end,
-        desc = 'harpoon to file 1',
-      },
-      {
-        '<leader>ha2',
-        function()
-          require('harpoon'):list():select(2)
-        end,
-        desc = 'harpoon to file 2',
-      },
-      {
-        '<leader>ha3',
-        function()
-          require('harpoon'):list():select(3)
-        end,
-        desc = 'harpoon to file 3',
-      },
-      {
-        '<leader>ha4',
-        function()
-          require('harpoon'):list():select(4)
-        end,
-        desc = 'harpoon to file 4',
-      },
-      {
-        '<leader>ha5',
-        function()
-          require('harpoon'):list():select(5)
-        end,
-        desc = 'harpoon to file 5',
-      },
-      {
-        '<leader>han',
-        function()
-          require('harpoon'):list():next()
-        end,
-        desc = 'harpoon to next',
-      },
-      {
-        '<leader>hap',
-        function()
-          require('harpoon'):list():previous()
-        end,
-        desc = 'harpoon to previous',
-      },
-      {
-        '<leader>har',
-        function()
-          local harpoon = require 'harpoon'
-          local list = harpoon:list()
-          for i = 5, 1, -1 do
-            harpoon:list():remove(i)
-          end
-        end,
-        desc = 'harpoon remove all (1-5)',
-      },
-    },
-  },
   { 'dstein64/nvim-scrollview', event = 'VeryLazy', opts = {} },
   vim.lsp.config('pyright', { settings = {
     python = { pythonVersion = '3.12' },
   } }),
   vim.lsp.enable 'pyright',
+  vim.api.nvim_create_autocmd('BufWinEnter', {
+    callback = function()
+      local win = vim.api.nvim_get_current_win()
+      local width = vim.api.nvim_win_get_width(win)
+      vim.api.nvim_win_set_width(win, width - 1)
+    end,
+  }),
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
