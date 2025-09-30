@@ -204,7 +204,7 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 
 vim.keymap.set('n', 'o', 'o<Esc>')
 
-vim.keymap.set('n', 'O', 'o<Esc>')
+vim.keymap.set('n', 'O', 'O<Esc>')
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
