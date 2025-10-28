@@ -106,15 +106,15 @@ vim.o.relativenumber = true
 vim.o.mouse = 'a'
 
 -- Don't show the mode, since it's already in the status line
-vim.o.showmode = false
-
--- Sync clipboard between OS and Neovim.
---  Schedule the setting after `UiEnter` because it can increase startup-time.
---  Remove this option if you want your OS clipboard to remain independent.
---  See `:help 'clipboard'`
-vim.schedule(function()
-  vim.o.clipboard = 'unnamedplus'
-end)
+vim.o.showmode =
+    false,
+    -- Sync clipboard between OS and Neovim.
+    --  Schedule the setting after `UiEnter` because it can increase startup-time.
+    --  Remove this option if you want your OS clipboard to remain independent.
+    --  See `:help 'clipboard'`
+    vim.schedule(function()
+      vim.o.clipboard = 'unnamedplus'
+    end)
 
 -- Enable break indent
 vim.o.breakindent = true
@@ -204,7 +204,7 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 
 vim.keymap.set('n', 'o', 'o<Esc>')
 
-vim.keymap.set('n', 'O', 'o<Esc>')
+vim.keymap.set('n', 'O', 'O<Esc>')
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -300,7 +300,7 @@ require('lazy').setup({
   -- Then, because we use the `opts` key (recommended), the configuration runs
   -- after the plugin has been loaded as `require(MODULE).setup(opts)`.
 
-  { -- Useful plugin to show you pending keybinds.
+  {                     -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     opts = {
@@ -383,7 +383,7 @@ require('lazy').setup({
       { 'nvim-telescope/telescope-ui-select.nvim' },
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
-      { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
+      { 'nvim-tree/nvim-web-devicons',            enabled = vim.g.have_nerd_font },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -426,7 +426,6 @@ require('lazy').setup({
           },
         },
       }
-
       -- Enable Telescope extensions if they are installed
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
@@ -501,7 +500,7 @@ require('lazy').setup({
       'WhoIsSethDaniel/mason-tool-installer.nvim',
 
       -- Useful status updates for LSP.
-      { 'j-hui/fidget.nvim', opts = {} },
+      { 'j-hui/fidget.nvim',    opts = {} },
 
       -- Allows extra capabilities provided by blink.cmp
       'saghen/blink.cmp',
@@ -890,7 +889,7 @@ require('lazy').setup({
     },
   },
 
-  { 'ellisonleao/gruvbox.nvim', lazy = true, event = 'VeryLazy', priority = 1000, config = true },
+  { 'ellisonleao/gruvbox.nvim', lazy = true,        event = 'VeryLazy', priority = 1000, config = true },
 
   { -- You can easily change to a different colorscheme.
     'catppuccin/nvim',
@@ -1027,7 +1026,8 @@ require('lazy').setup({
   require 'kickstart.plugins.neo-tree',
   require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
   require 'custom.etc.keymaps',
-  { 'github/copilot.vim', enabled = false },
+
+  { 'github/copilot.vim',       enabled = false },
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
@@ -1041,9 +1041,11 @@ require('lazy').setup({
   -- you can continue same window with `<space>sr` which resumes last telescope search
 
   { 'dstein64/nvim-scrollview', event = 'VeryLazy', opts = {} },
-  vim.lsp.config('pyright', { settings = {
-    python = { pythonVersion = '3.12' },
-  } }),
+  vim.lsp.config('pyright', {
+    settings = {
+      python = { pythonVersion = '3.12' },
+    }
+  }),
   vim.lsp.enable 'pyright',
   vim.api.nvim_create_autocmd('BufWinEnter', {
     callback = function()
@@ -1052,6 +1054,7 @@ require('lazy').setup({
       vim.api.nvim_win_set_width(win, width - 1)
     end,
   }),
+  require('custom.etc.appearance').setup(),
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
@@ -1076,3 +1079,5 @@ require('lazy').setup({
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+vim.opt.grepprg =
+'rg --vimgrep --glob=!**/.venv/** --glob=!.venv/** --glob=!.mypy_cache/** --glob=!**/.mypy_cache/** --glob=!**/worktrees/** --glob=!venv/** --glob=!worktrees/** --glob=!**/.pytest_cache/** -uu'

@@ -3,4 +3,5 @@ return {
   config = function()
     require('main').setup()
   end,
+  enabled = false,
 }

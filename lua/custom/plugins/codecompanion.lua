@@ -11,6 +11,19 @@ return {
       },
     },
   },
+  config = function()
+    require('codecompanion').setup {
+      adapters = {
+        http = {
+          opts = {
+            allow_insecure = true,
+            proxy = 'http://webproxy-internal.metoffice.gov.uk:8080',
+          },
+        },
+      },
+    }
+  end,
+
   dependencies = {
     'nvim-lua/plenary.nvim',
   },
