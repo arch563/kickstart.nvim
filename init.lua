@@ -101,7 +101,9 @@ vim.g.have_nerd_font = true -- [[ Setting options ]]
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
 vim.o.number = true -- Enable absolute line number
-vim.o.relativenumber = true
+if vim.fn.has('termguicolors') == 1 then
+  vim.opt.termguicolors = true
+end
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
 
@@ -248,6 +250,22 @@ rtp:prepend(lazypath)
 -- NOTE: Here is where you install your plugins.
 --
 require('lazy').setup({
+  {
+    'sainnhe/everforest',
+    lazy = false,
+    event = 'VeryLazy',
+    priority = 1000,
+    config = function()
+      vim.g.everforest_enable_italic = true
+      vim.g.everforest_background = "soft"
+      vim.o.background = "light"
+      vim.cmd("colorscheme everforest")
+      vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
+      vim.api.nvim_set_hl(0, "FloatBorder", { bg = "none" })
+      vim.api.nvim_set_hl(0, "TermNormal", { bg = "none" })
+      vim.api.nvim_set_hl(0, "TermNormalNC", { bg = "none" })
+    end
+  },
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
   'NMAC427/guess-indent.nvim', -- Detect tabstop and shiftwidth automatically
 
@@ -889,26 +907,8 @@ require('lazy').setup({
     },
   },
 
-  { 'ellisonleao/gruvbox.nvim', lazy = true,        event = 'VeryLazy', priority = 1000, config = true },
 
-  { -- You can easily change to a different colorscheme.
-    'catppuccin/nvim',
-    lazy = true,
-    event = 'VeryLazy',
-    priority = 1000,
-    config = function()
-      require('gruvbox').setup {
-        styles = {
-          comments = { 'bold' },
-        },
-      }
-      vim.cmd.colorscheme 'gruvbox'
-      vim.api.nvim_set_hl(0, 'Title', { fg = '#569CD6', bold = true })
-      vim.api.nvim_set_hl(0, 'Function', { fg = '#d3869b', bold = true })
-      vim.api.nvim_set_hl(0, 'Normal', { bg = 'NONE' })
-      vim.api.nvim_set_hl(0, 'NormalFloat', { bg = 'NONE' })
-    end,
-  },
+
 
   -- Highlight todo, notes, etc in comments
   {
@@ -957,17 +957,12 @@ require('lazy').setup({
       -- Simple and easy statusline.
       --  You could remove this setup call if you don't like it,
       --  and try some other statusline plugin
-      local statusline = require 'mini.statusline'
       -- set use_icons to true if you have a Nerd Font
-      statusline.setup { use_icons = vim.g.have_nerd_font }
 
       -- You can configure sections in the statusline by overriding their
       -- default behavior. For example, here we set the section for
       -- cursor location to LINE:COLUMN
       ---@diagnostic disable-next-line: duplicate-set-field
-      statusline.section_location = function()
-        return '%2l:%-2v'
-      end
 
       -- ... and there is more!
       --  Check out: https://github.com/echasnovski/mini.nvim
@@ -1076,6 +1071,75 @@ require('lazy').setup({
     },
   },
 })
+
+vim.api.nvim_create_user_command('ChangedFilesQF', function()
+  -- Run git diff and get filenames
+  local handle = io.popen('git diff --name-only master')
+  if not handle then return end
+  local result = handle:read("*a")
+  handle:close()
+  if not result or result == "" then
+    vim.notify("No changed files vs master", vim.log.levels.INFO)
+    return
+  end
+  -- Format for quickfix: { filename = ..., lnum = 1 }
+  local qf_list = {}
+  for filename in result:gmatch("[^\r\n]+") do
+    if filename:match("%.py$") then
+      table.insert(qf_list, { filename = filename, lnum = 1, col = 1, text = "changed" })
+    end
+  end
+  vim.fn.setqflist(qf_list, 'r')
+end, { desc = "Quickfix: files changed vs master" })
+
+local ready_patterns = {
+  ["print"] = "print%(",
+  ["for i in"] = "for i in",
+  ["LOGGER"] = "LOGGER%."
+  -- Add more patterns here as needed
+}
+
+vim.api.nvim_create_user_command('ReadyForPR', function()
+  local handle = io.popen('git diff --name-only master')
+  if not handle then return end
+  local result = handle:read("*a")
+  handle:close()
+  if not result or result == "" then
+    vim.notify("No changed files vs master", vim.log.levels.INFO)
+    return
+  end
+
+  local qf_list = {}
+  for filename in result:gmatch("[^\r\n]+") do
+    if filename:match("%.py$") then
+      local file = io.open(filename, "r")
+      if file then
+        local lnum = 0
+        for line in file:lines() do
+          lnum = lnum + 1
+          for name, pattern in pairs(ready_patterns) do
+            local s, e = line:find(pattern)
+            if s then
+              table.insert(qf_list, {
+                filename = filename,
+                lnum = lnum,
+                col = s,
+                text = string.format("[%s] %s", name, line)
+              })
+            end
+          end
+        end
+        file:close()
+      end
+    end
+  end
+  if #qf_list == 0 then
+    vim.notify("No PR-blocking patterns found in changed .py files", vim.log.levels.INFO)
+    return
+  end
+  vim.fn.setqflist(qf_list, 'r')
+end, { desc = "Quickfix: PR-blocking patterns in changed .py files" })
+
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et

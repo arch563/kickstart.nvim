@@ -5,7 +5,7 @@ return {
 		local conform = require 'conform'
 		conform.setup {
 			formatters_by_ft = {
-				python = { 'black' },
+				python = { 'ruff' },
 			},
 			format_on_save = {
 				timeout_ms = 500,

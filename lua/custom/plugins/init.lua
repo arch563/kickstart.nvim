@@ -25,7 +25,6 @@ return {
 	require 'custom.plugins.nvim-lint',
 	require 'custom.plugins.conform-nvim',
 	require 'custom.plugins.noice',
-	require 'custom.plugins.rosepine',
-
+	require 'custom.plugins.lualine',
 
 }
