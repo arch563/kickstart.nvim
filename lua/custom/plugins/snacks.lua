@@ -1,0 +1,36 @@
+-- auto-session --> snacks dashboard
+-- bookmarks-nvim --> nothing
+-- codecompanion.local --> nothing
+-- codecompanion --> nothing
+-- conform-nvim --> nothing
+-- coverage-nvim --> nothing
+-- csvview-nvim --> nothing
+-- diffview-nvim --> mini-diff
+-- git-blame --> none
+-- harpoon --> remove
+-- init -->
+-- lazygit --> snacks.lazygit
+-- lualine --> mini.statusline
+-- neotest-python --> keep
+-- neotest --> keep
+-- noice --> mini notify
+-- nvim-dap-python --> keep
+-- nvim-dap-ui --> keep
+-- nvim-dap --> keep
+-- nvim-lint --> keep
+-- python-venv --> keep
+-- reminders-nvim --> remove
+-- render-markdown -->
+-- scratch-nvim -->
+-- snacks-gh -->
+-- snacks -->
+-- task-decomposer -->
+-- toggleterm --> snacks.terminal
+-- trouble-nvim -->
+-- health -->
+-- autopairs --> mini.pairs
+-- debug
+-- gitsigns --> mini.git
+-- indent_line --> snacks.indent
+-- lint
+-- neo-tree --> mini.files
