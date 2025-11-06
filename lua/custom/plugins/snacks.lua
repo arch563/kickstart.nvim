@@ -1,4 +1,4 @@
--- auto-session --> snacks dashboard
+-- auto-session --> snacks dashboard --done
 -- bookmarks-nvim --> nothing
 -- codecompanion.local --> nothing
 -- codecompanion --> nothing
@@ -20,17 +20,18 @@
 -- nvim-lint --> keep
 -- python-venv --> keep
 -- reminders-nvim --> remove
--- render-markdown -->
--- scratch-nvim -->
--- snacks-gh -->
+-- render-markdown --> keep
+-- scratch-nvim --> snacks scratch
+-- snacks-gh --> keep
 -- snacks -->
--- task-decomposer -->
+-- task-decomposer --> keep
 -- toggleterm --> snacks.terminal
--- trouble-nvim -->
+-- trouble-nvim --> keep
 -- health -->
 -- autopairs --> mini.pairs
--- debug
+-- debug - keep
 -- gitsigns --> mini.git
 -- indent_line --> snacks.indent
--- lint
+-- lint keep
 -- neo-tree --> mini.files
+-- telescope - fzf-lua
