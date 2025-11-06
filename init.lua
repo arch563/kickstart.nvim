@@ -1095,7 +1095,8 @@ end, { desc = "Quickfix: files changed vs master" })
 local ready_patterns = {
   ["print"] = "print%(",
   ["for i in"] = "for i in",
-  ["LOGGER"] = "LOGGER%."
+  ["LOGGER"] = "LOGGER%.",
+  ["#"] = "#%."
   -- Add more patterns here as needed
 }
 
@@ -1112,20 +1113,44 @@ vim.api.nvim_create_user_command('ReadyForPR', function()
   local qf_list = {}
   for filename in result:gmatch("[^\r\n]+") do
     if filename:match("%.py$") then
+      -- Get changed lines using git diff -U0
+      local diff_cmd = string.format('git diff -U0 master -- "%s"', filename)
+      local diff_handle = io.popen(diff_cmd)
+      local diff_output = diff_handle:read("*a")
+      diff_handle:close()
+
+      -- Collect changed line numbers
+      local changed_lines = {}
+      for hunk in diff_output:gmatch("@@.-@@") do
+        local start, count = hunk:match("%+(%d+),?(%d*)")
+        start = tonumber(start)
+        count = tonumber(count) or 1
+        for i = 0, count - 1 do
+          table.insert(changed_lines, start + i)
+        end
+      end
+      local changed_set = {}
+      for _, lnum in ipairs(changed_lines) do
+        changed_set[lnum] = true
+      end
+
+      -- Scan only changed lines
       local file = io.open(filename, "r")
       if file then
         local lnum = 0
         for line in file:lines() do
           lnum = lnum + 1
-          for name, pattern in pairs(ready_patterns) do
-            local s, e = line:find(pattern)
-            if s then
-              table.insert(qf_list, {
-                filename = filename,
-                lnum = lnum,
-                col = s,
-                text = string.format("[%s] %s", name, line)
-              })
+          if changed_set[lnum] then
+            for name, pattern in pairs(ready_patterns) do
+              local s, e = line:find(pattern)
+              if s then
+                table.insert(qf_list, {
+                  filename = filename,
+                  lnum = lnum,
+                  col = s,
+                  text = string.format("[%s] %s", name, line)
+                })
+              end
             end
           end
         end
@@ -1134,11 +1159,11 @@ vim.api.nvim_create_user_command('ReadyForPR', function()
     end
   end
   if #qf_list == 0 then
-    vim.notify("No PR-blocking patterns found in changed .py files", vim.log.levels.INFO)
+    vim.notify("No PR-blocking patterns found in changed lines of .py files", vim.log.levels.INFO)
     return
   end
   vim.fn.setqflist(qf_list, 'r')
-end, { desc = "Quickfix: PR-blocking patterns in changed .py files" })
+end, { desc = "Quickfix: PR-blocking patterns in changed lines of .py files" })
 
 
 -- The line beneath this is called `modeline`. See `:help modeline`
