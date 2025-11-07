@@ -5,7 +5,7 @@
 -- conform-nvim --> nothing
 -- coverage-nvim --> nothing
 -- csvview-nvim --> nothing
--- diffview-nvim --> mini-diff
+-- diffview-nvim --> remove
 -- git-blame --> none
 -- harpoon --> remove
 -- init -->
