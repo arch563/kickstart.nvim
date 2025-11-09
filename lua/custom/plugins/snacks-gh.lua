@@ -1,7 +1,26 @@
 return {
 	"folke/snacks.nvim",
-	lazy = true,
+	priority = 1000,
+	lazy = false,
+	keys = {
+		{ "<cr>\\", function() Snacks.terminal.toggle() end, desc = "Open horizontal terminal split" },
+		{ "<leader>gi", function() Snacks.picker.gh_issue() end,                  desc = "GitHub Issues (open)" },
+		{ "<leader>gI", function() Snacks.picker.gh_issue({ state = "all" }) end, desc = "GitHub Issues (all)" },
+		{ "<leader>gp", function() Snacks.picker.gh_pr() end,                     desc = "GitHub Pull Requests (open)" },
+		{ "<leader>gP", function() Snacks.picker.gh_pr({ state = "all" }) end,    desc = "GitHub Pull Requests (all)" },
+	},
 	opts = {
+		indent = {
+			-- your indent configuration comes here
+			-- or leave it empty to use the default settings
+			-- refer to the configuration section below
+		},
+		terminal = {},
+		scratch = {
+			-- your scratch configuration comes here
+			-- or leave it empty to use the default settings
+			-- refer to the configuration section below
+		},
 		gh = {
 			-- your gh configuration comes here
 			-- or leave it empty to use the default settings
@@ -36,9 +55,6 @@ return {
 				},
 				{ section = "startup" },
 			},
-			-- your dashboard configuration comes here
-			-- or leave it empty to use the default settings
-			-- refer to the configuration section below
 		},
 
 		picker = {
@@ -53,12 +69,6 @@ return {
 				}
 			}
 		},
-	},
-	keys = {
-		{ "<leader>gi", function() Snacks.picker.gh_issue() end,                  desc = "GitHub Issues (open)" },
-		{ "<leader>gI", function() Snacks.picker.gh_issue({ state = "all" }) end, desc = "GitHub Issues (all)" },
-		{ "<leader>gp", function() Snacks.picker.gh_pr() end,                     desc = "GitHub Pull Requests (open)" },
-		{ "<leader>gP", function() Snacks.picker.gh_pr({ state = "all" }) end,    desc = "GitHub Pull Requests (all)" },
 	},
 
 }

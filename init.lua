@@ -933,7 +933,6 @@ require('lazy').setup({
 
       -- ... and there is more!
       --  Check out: https://github.com/echasnovski/mini.nvim
-      require('mini.starter').setup()
       require('mini.tabline').setup()
     end,
   },
@@ -982,7 +981,6 @@ require('lazy').setup({
       return { mode = 'cursor', max_lines = 3 }
     end,
   },
-  require 'kickstart.plugins.indent_line',
   require 'kickstart.plugins.lint',
   require 'custom.etc.keymaps',
 
