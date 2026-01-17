@@ -1,31 +1,30 @@
 return {
 	'olimorris/codecompanion.nvim',
 	lazy = true,
-	keys = { '<leader>ai', '<cmd>CodeCompanionChat Toggle<cr>' },
 	cmd = { 'CodeCompanionChat Toggle' },
-	opts = {
-		strategies = {
-			-- Change the default chat adapter and model
-			chat = {
-				adapter = 'copilot',
-				model = 'gpt-4.1',
-			},
-		},
-	},
 	config = function()
-		local ok = pcall(require, 'plugins.codecompanion.local')
-		if not ok then
+		local ok, local_config = pcall(require, 'custom.plugins.codecompanion.local')
+		if ok then
+			local_config.setup()
+		else
 			require('codecompanion').setup {
 				strategies = {
 					chat = {
 						adapter = 'copilot',
-						model = 'gpt-4.1',
+						model = 'Geimini 2.5 Pro',
 					},
 				},
+				adapters = {
+					http = {
+						opts = {
+							allow_insecure = true,
+							proxy = 'http://webproxy-internal.metoffice.gov.uk:8080',
+						}
+					}
+				}
 			}
 		end
 	end,
-
 	dependencies = {
 		'nvim-lua/plenary.nvim',
 	},
