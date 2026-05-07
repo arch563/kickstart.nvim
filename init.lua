@@ -91,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.o`
@@ -170,6 +170,7 @@ vim.o.confirm = true
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
+vim.keymap.set('i', 'jk', '<Esc>')
 
 -- Diagnostic Config & Keymaps
 -- See :help vim.diagnostic.Opts
@@ -333,9 +334,7 @@ require('lazy').setup({
 
   { -- Fast file/content search
     'dmtrKovalenko/fff.nvim',
-    build = function()
-      require('fff.download').download_or_build_binary()
-    end,
+    build = function() require('fff.download').download_or_build_binary() end,
     lazy = false,
     config = function()
       require('fff').setup {
@@ -385,18 +384,9 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader><leader>', fzf.buffers, { desc = '[ ] Find existing buffers' })
 
       vim.keymap.set('n', '<leader>/', fzf.blines, { desc = '[/] Fuzzily search in current buffer' })
-      vim.keymap.set(
-        'n',
-        '<leader>s/',
-        function()
-          fzf.live_grep_glob { grep_opts = '--open-files' }
-        end,
-        { desc = '[S]earch [/] in Open Files' }
-      )
+      vim.keymap.set('n', '<leader>s/', function() fzf.live_grep_glob { grep_opts = '--open-files' } end, { desc = '[S]earch [/] in Open Files' })
 
-      vim.keymap.set('n', '<leader>sn', function()
-        fff.find_files_in_dir(vim.fn.stdpath 'config')
-      end, { desc = '[S]earch [N]eovim files' })
+      vim.keymap.set('n', '<leader>sn', function() fff.find_files_in_dir(vim.fn.stdpath 'config') end, { desc = '[S]earch [N]eovim files' })
     end,
   },
 
@@ -521,7 +511,7 @@ require('lazy').setup({
       --  See `:help lsp-config` for information about keys and how to configure
       ---@type table<string, vim.lsp.Config>
       local servers = {
-        -- clangd = {},
+        clangd = {},
         -- gopls = {},
         -- pyright = {},
         -- rust_analyzer = {},
@@ -531,7 +521,8 @@ require('lazy').setup({
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
-
+        copilot = {},
+        ty = {},
         stylua = {}, -- Used to format Lua code
 
         -- Special Lua Config, as recommended by neovim help docs
@@ -805,7 +796,7 @@ require('lazy').setup({
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
     lazy = false,
-    commit = vim.fn.has("nvim-0.12") == 0 and "7caec274fd19c12b55902a5b795100d21531391f" or nil,
+    commit = vim.fn.has 'nvim-0.12' == 0 and '7caec274fd19c12b55902a5b795100d21531391f' or nil,
     version = false,
     branch = 'main',
     build = ':TSUpdate',
@@ -909,5 +900,82 @@ require('lazy').setup({
   },
 })
 
+local ready_patterns = {
+  ['print'] = 'print%(',
+  ['for i in'] = 'for i in',
+  ['LOGGER'] = 'LOGGER%.',
+  ['logger'] = 'logger%.',
+  ['#'] = '#%.',
+  ['GetLogger'] = 'getLogger%.',
+  -- Add more patterns here as needed
+}
+
+vim.api.nvim_create_user_command('ReadyForPR', function()
+  local handle = io.popen 'git diff --name-only master'
+  if not handle then return end
+  local result = handle:read '*a'
+  handle:close()
+  if not result or result == '' then
+    vim.notify('No changed files vs master', vim.log.levels.INFO)
+    return
+  end
+
+  local qf_list = {}
+  for filename in result:gmatch '[^\r\n]+' do
+    if filename:match '%.py$' then
+      -- Get changed lines using git diff -U0
+      local diff_cmd = string.format('git diff -U0 master -- "%s"', filename)
+      local diff_handle = io.popen(diff_cmd)
+      local diff_output = diff_handle:read '*a'
+      diff_handle:close()
+
+      -- Collect changed line numbers
+      local changed_lines = {}
+      for hunk in diff_output:gmatch '@@.-@@' do
+        local start, count = hunk:match '%+(%d+),?(%d*)'
+        start = tonumber(start)
+        count = tonumber(count) or 1
+        for i = 0, count - 1 do
+          table.insert(changed_lines, start + i)
+        end
+      end
+      local changed_set = {}
+      for _, lnum in ipairs(changed_lines) do
+        changed_set[lnum] = true
+      end
+
+      -- Scan only changed lines
+      local file = io.open(filename, 'r')
+      if file then
+        local lnum = 0
+        for line in file:lines() do
+          lnum = lnum + 1
+          if changed_set[lnum] then
+            for name, pattern in pairs(ready_patterns) do
+              local s, e = line:find(pattern)
+              if s then
+                table.insert(qf_list, {
+                  filename = filename,
+                  lnum = lnum,
+                  col = s,
+                  text = string.format('[%s] %s', name, line),
+                })
+              end
+            end
+          end
+        end
+        file:close()
+      end
+    end
+  end
+  if #qf_list == 0 then
+    vim.notify('No PR-blocking patterns found in changed lines of .py files', vim.log.levels.INFO)
+    return
+  end
+  vim.fn.setqflist(qf_list, 'r')
+end, { desc = 'Quickfix: PR-blocking patterns in changed lines of .py files' })
+
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+vim.opt.grepprg =
+  'rg --vimgrep --glob=!**/.venv/** --glob=!.venv/** --glob=!.mypy_cache/** --glob=!**/.mypy_cache/** --glob=!**/worktrees/** --glob=!venv/** --glob=!worktrees/** --glob=!**/.pytest_cache/** -uu'
