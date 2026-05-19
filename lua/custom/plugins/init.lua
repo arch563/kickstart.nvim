@@ -17,4 +17,5 @@ return {
   require 'custom.plugins.persistence-nvim',
   require 'custom.plugins.trouble-nvim',
   require 'custom.plugins.sidekick-nvim',
+  require 'custom.plugins.jupynvim',
 }

@@ -102,7 +102,7 @@ vim.g.have_nerd_font = true
 vim.o.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.o.relativenumber = true
+vim.o.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
@@ -679,7 +679,7 @@ require('lazy').setup({
         -- <c-k>: Toggle signature help
         --
         -- See :h blink-cmp-config-keymap for defining your own keymap
-        preset = 'default',
+        preset = 'super-tab',
 
         -- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
         --    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
@@ -694,7 +694,7 @@ require('lazy').setup({
       completion = {
         -- By default, you may press `<c-space>` to show the documentation.
         -- Optionally, set `auto_show = true` to show the documentation after a delay.
-        documentation = { auto_show = false, auto_show_delay_ms = 500 },
+        documentation = { auto_show = true, auto_show_delay_ms = 300 },
       },
 
       sources = {
@@ -735,7 +735,7 @@ require('lazy').setup({
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
+      vim.cmd.colorscheme 'tokyonight-day'
     end,
   },
 
@@ -979,3 +979,7 @@ end, { desc = 'Quickfix: PR-blocking patterns in changed lines of .py files' })
 -- vim: ts=2 sts=2 sw=2 et
 vim.opt.grepprg =
   'rg --vimgrep --glob=!**/.venv/** --glob=!.venv/** --glob=!.mypy_cache/** --glob=!**/.mypy_cache/** --glob=!**/worktrees/** --glob=!venv/** --glob=!worktrees/** --glob=!**/.pytest_cache/** -uu'
+
+vim.keymap.set("n", "<leader>zp", function()
+  require("nvim_ssh").start()
+end, { desc = "Zellij SSH picker" })
