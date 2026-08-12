@@ -110,6 +110,7 @@ vim.o.mouse = 'a'
 -- Don't show the mode, since it's already in the status line
 vim.o.showmode = false
 
+vim.o.background = 'dark'
 -- Sync clipboard between OS and Neovim.
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
 --  Remove this option if you want your OS clipboard to remain independent.
@@ -149,6 +150,7 @@ vim.o.splitbelow = true
 --   and `:help lua-guide-options`
 vim.o.list = true
 vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
+vim.opt.conceallevel = 2
 
 -- Preview substitutions live, as you type!
 vim.o.inccommand = 'split'
@@ -387,6 +389,7 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>s/', function() fzf.live_grep_glob { grep_opts = '--open-files' } end, { desc = '[S]earch [/] in Open Files' })
 
       vim.keymap.set('n', '<leader>sn', function() fff.find_files_in_dir(vim.fn.stdpath 'config') end, { desc = '[S]earch [N]eovim files' })
+      vim.keymap.set('n', '<leader>sK', function() fff.find_files_in_dir(vim.fn.expand '~/skills/skills') end, { desc = '[S]earch s[K]ills files' })
     end,
   },
 
@@ -466,6 +469,7 @@ require('lazy').setup({
           -- WARN: This is not Goto Definition, this is Goto Declaration.
           --  For example, in C this would take you to the header.
           map('grD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
+          map('grd', vim.lsp.buf.definition, '[G]oto [d]efinition')
 
           -- The following two autocommands are used to highlight references of the
           -- word under your cursor when your cursor rests there for a little while.
@@ -495,7 +499,13 @@ require('lazy').setup({
               end,
             })
           end
+          if client.name == 'markdown_oxide' then
+            vim.api.nvim_create_user_command('Daily', function(args)
+              local input = args.args
 
+              vim.lsp.buf.execute_command { command = 'jump', arguments = { input } }
+            end, { desc = 'Open daily note', nargs = '*' })
+          end
           -- The following code creates a keymap to toggle inlay hints in your
           -- code, if the language server you are using supports them
           --
@@ -506,6 +516,7 @@ require('lazy').setup({
         end,
       })
 
+      local capabilities = vim.lsp.protocol.make_client_capabilities()
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
       --  See `:help lsp-config` for information about keys and how to configure
@@ -521,9 +532,36 @@ require('lazy').setup({
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
-        copilot = {},
-        ty = {},
+        ruff = {
+          cmd = { 'ruff', 'server' },
+          filetypes = { 'python' },
+        },
+        ty = {
+          cmd = { 'ty', 'server' },
+          filetypes = { 'python' },
+          root_markers = { 'ty.toml', 'pyproject.toml', 'setup.py', 'setup.cfg', 'requirements.txt', '.git' },
+          diagnosticMode = 'workspace',
+        },
+        harper_ls = { cmd = { 'harper-ls', '--stdio' }, filetypes = { 'markdown', 'text' } },
+        markdown_oxide = {
+          cmd = { 'markdown-oxide' },
+          filetypes = { 'markdown' },
+          root_markers = { '.git', '.obsidian', '.moxide.toml' },
+          capabilities = vim.tbl_deep_extend('force', capabilities, {
+            workspace = {
+              didChangeWatchedFiles = {
+                dynamicRegistration = true,
+              },
+            },
+          }),
+        },
         stylua = {}, -- Used to format Lua code
+        azure_pipelines_ls = {
+          cmd = { 'azure-pipelines-language-server', '--stdio' },
+          filetypes = { 'yaml' },
+          root_markers = { 'azure-pipelines.yml' },
+          settings = {},
+        }, -- Used to format Lua code
 
         -- Special Lua Config, as recommended by neovim help docs
         lua_ls = {
@@ -735,7 +773,7 @@ require('lazy').setup({
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-day'
+      vim.cmd.colorscheme 'everforest'
     end,
   },
 
@@ -747,7 +785,7 @@ require('lazy').setup({
     ---@module 'todo-comments'
     ---@type TodoOptions
     ---@diagnostic disable-next-line: missing-fields
-    opts = { signs = false },
+    opts = { signs = True },
   },
 
   { -- Collection of various small independent plugins/modules
@@ -901,8 +939,8 @@ require('lazy').setup({
 })
 
 local ready_patterns = {
-  ['print'] = 'print%(',
-  ['for i in'] = 'for i in',
+  ['print'] = 'print%s*%(',
+  ['for i in'] = 'for%s+i%s+in',
   ['LOGGER'] = 'LOGGER%.',
   ['logger'] = 'logger%.',
   ['#'] = '#%.',
@@ -910,76 +948,153 @@ local ready_patterns = {
   -- Add more patterns here as needed
 }
 
-vim.api.nvim_create_user_command('ReadyForPR', function()
-  local handle = io.popen 'git diff --name-only master'
-  if not handle then return end
-  local result = handle:read '*a'
+local function shell_quote(str) return "'" .. str:gsub("'", "'\\\"'\\\"'") .. "'" end
+
+local function run_cmd(cmd)
+  local handle = io.popen(cmd)
+  if not handle then return nil end
+  local output = handle:read '*a' or ''
   handle:close()
-  if not result or result == '' then
-    vim.notify('No changed files vs master', vim.log.levels.INFO)
+  return output
+end
+
+vim.api.nvim_create_user_command('ReadyForPR', function()
+  local merge_base = run_cmd 'git merge-base main HEAD'
+  if not merge_base or merge_base == '' then
+    vim.notify('Could not determine merge-base with main', vim.log.levels.ERROR)
+    return
+  end
+  merge_base = merge_base:gsub('%s+$', '')
+
+  local changed_output = run_cmd(string.format('git diff --name-only --diff-filter=ACMR %s -- "*.py"', shell_quote(merge_base)))
+  if changed_output == nil then
+    vim.notify('Failed to list changed files', vim.log.levels.ERROR)
+    return
+  end
+
+  local untracked_output = run_cmd 'git ls-files --others --exclude-standard -- "*.py"'
+  if untracked_output == nil then
+    vim.notify('Failed to list untracked files', vim.log.levels.ERROR)
+    return
+  end
+
+  local files = {}
+  local untracked = {}
+  for filename in changed_output:gmatch '[^\r\n]+' do
+    files[filename] = true
+  end
+  for filename in untracked_output:gmatch '[^\r\n]+' do
+    files[filename] = true
+    untracked[filename] = true
+  end
+
+  local has_files = false
+  for _ in pairs(files) do
+    has_files = true
+    break
+  end
+
+  if not has_files then
+    vim.notify('No changed Python files vs main (including untracked)', vim.log.levels.INFO)
     return
   end
 
   local qf_list = {}
-  for filename in result:gmatch '[^\r\n]+' do
-    if filename:match '%.py$' then
-      -- Get changed lines using git diff -U0
-      local diff_cmd = string.format('git diff -U0 master -- "%s"', filename)
-      local diff_handle = io.popen(diff_cmd)
-      local diff_output = diff_handle:read '*a'
-      diff_handle:close()
 
-      -- Collect changed line numbers
-      local changed_lines = {}
-      for hunk in diff_output:gmatch '@@.-@@' do
-        local start, count = hunk:match '%+(%d+),?(%d*)'
-        start = tonumber(start)
-        count = tonumber(count) or 1
-        for i = 0, count - 1 do
-          table.insert(changed_lines, start + i)
-        end
-      end
-      local changed_set = {}
-      for _, lnum in ipairs(changed_lines) do
-        changed_set[lnum] = true
-      end
+  for filename in pairs(files) do
+    local changed_set = {}
 
-      -- Scan only changed lines
+    if untracked[filename] then
       local file = io.open(filename, 'r')
       if file then
         local lnum = 0
-        for line in file:lines() do
+        for _ in file:lines() do
           lnum = lnum + 1
-          if changed_set[lnum] then
-            for name, pattern in pairs(ready_patterns) do
-              local s, e = line:find(pattern)
-              if s then
-                table.insert(qf_list, {
-                  filename = filename,
-                  lnum = lnum,
-                  col = s,
-                  text = string.format('[%s] %s', name, line),
-                })
-              end
-            end
-          end
+          changed_set[lnum] = true
         end
         file:close()
       end
+    else
+      local diff_cmd = string.format('git diff -U0 %s -- %s', shell_quote(merge_base), shell_quote(filename))
+      local diff_output = run_cmd(diff_cmd)
+      if diff_output then
+        for hunk in diff_output:gmatch '@@.-@@' do
+          local start, count = hunk:match '%+(%d+),?(%d*)'
+          start = tonumber(start)
+          count = tonumber(count) or 1
+          if start and count > 0 then
+            for i = 0, count - 1 do
+              changed_set[start + i] = true
+            end
+          end
+        end
+      end
+    end
+
+    local file = io.open(filename, 'r')
+    if file then
+      local lnum = 0
+      for line in file:lines() do
+        lnum = lnum + 1
+        if changed_set[lnum] then
+          for name, pattern in pairs(ready_patterns) do
+            local s = line:find(pattern)
+            if s then
+              table.insert(qf_list, {
+                filename = filename,
+                lnum = lnum,
+                col = s,
+                text = string.format('[%s] %s', name, line),
+              })
+            end
+          end
+        end
+      end
+      file:close()
     end
   end
+
   if #qf_list == 0 then
     vim.notify('No PR-blocking patterns found in changed lines of .py files', vim.log.levels.INFO)
     return
   end
+
   vim.fn.setqflist(qf_list, 'r')
+  vim.cmd.copen()
 end, { desc = 'Quickfix: PR-blocking patterns in changed lines of .py files' })
+
+vim.api.nvim_create_user_command('ChangePythonPath', function()
+  local cwd = vim.fn.getcwd()
+  local existing = vim.env.PYTHONPATH
+
+  vim.env.PYTHONPATH = cwd
+
+  vim.notify('PYTHONPATH set to: ' .. vim.env.PYTHONPATH, vim.log.levels.INFO)
+end, { desc = 'Set PYTHONPATH to current working directory' })
+
+vim.api.nvim_create_autocmd({ "VimEnter", "DirChanged" }, {
+  pattern = "*",
+  callback = function()
+    -- Check if 'Dockerfile' exists in the current working directory
+    local stat = vim.uv.fs_stat(vim.fn.getcwd() .. "/Dockerfile")
+    
+    if stat and stat.type == "file" then
+      -- Get current folder name to use as a dynamic image tag
+      local current_dir = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
+      sudo DOCKER_BUILDKIT=1  docker build --progress=plain --secret id=uv_index_siriuspython_password,env=AZURE_ARTIFACTS_PAT 
+--build-arg UV_INDEX_SIRIUSPYTHON_USERNAME=VssSessionToken -f docker/Dockerfile -t radar-cv-data-fusion:d
+ev .
+      vim.opt.makeprg = " sudo DOCKER_BUILDKIT=1  docker build --progress=plain --secret id=uv_index_siriuspython_password,env=AZURE_ARTIFACTS_PAT --build-arg UV_INDEX_SIRIUSPYTHON_USERNAME=VssSessionToken -f docker/Dockerfile  -t " .. current_dir .. ":latest"
+    else
+      -- Fallback to the default system 'make' utility
+      vim.opt.makeprg = "make"
+    end
+  end,
+})
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
 vim.opt.grepprg =
-  'rg --vimgrep --glob=!**/.venv/** --glob=!.venv/** --glob=!.mypy_cache/** --glob=!**/.mypy_cache/** --glob=!**/worktrees/** --glob=!venv/** --glob=!worktrees/** --glob=!**/.pytest_cache/** -uu'
+  'rg --vimgrep --glob=!**/.venv/** --glob=!.venv/** --glob=!.mypy_cache/** --glob=!**/.mypy_cache/** --glob=!**/worktrees/** --glob=!venv/** --glob=!worktrees/** --glob=!**/.pytest_cache/** --glob=!tmp/** --glob=!.omo/** --glob=!.codegraph/ -uu'
 
-vim.keymap.set("n", "<leader>zp", function()
-  require("nvim_ssh").start()
-end, { desc = "Zellij SSH picker" })
+vim.keymap.set('n', '<leader>zp', function() require('nvim_ssh').start() end, { desc = 'Zellij SSH picker' })

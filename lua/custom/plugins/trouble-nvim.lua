@@ -34,4 +34,29 @@ return {
       desc = 'Quickfix List (Trouble)',
     },
   },
+  config = function(_, opts)
+    require('trouble').setup(opts)
+
+    local group = vim.api.nvim_create_augroup('TroubleQuickfixAutoOpen', { clear = true })
+
+    -- quickfix-producing commands (:grep, :vimgrep, :make, :helpgrep, etc.)
+    vim.api.nvim_create_autocmd('QuickFixCmdPost', {
+      group = group,
+      pattern = '[^l]*',
+      callback = function()
+        vim.cmd 'Trouble qflist open'
+        vim.cmd 'cclose'
+      end,
+    })
+
+    -- location-list-producing commands (:lgrep, :lvimgrep, :lhelpgrep, etc.)
+    vim.api.nvim_create_autocmd('QuickFixCmdPost', {
+      group = group,
+      pattern = 'l*',
+      callback = function()
+        vim.cmd 'Trouble loclist open'
+        vim.cmd 'lclose'
+      end,
+    })
+  end,
 }
