@@ -1081,9 +1081,6 @@ vim.api.nvim_create_autocmd({ "VimEnter", "DirChanged" }, {
     if stat and stat.type == "file" then
       -- Get current folder name to use as a dynamic image tag
       local current_dir = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
-      sudo DOCKER_BUILDKIT=1  docker build --progress=plain --secret id=uv_index_siriuspython_password,env=AZURE_ARTIFACTS_PAT 
---build-arg UV_INDEX_SIRIUSPYTHON_USERNAME=VssSessionToken -f docker/Dockerfile -t radar-cv-data-fusion:d
-ev .
       vim.opt.makeprg = " sudo DOCKER_BUILDKIT=1  docker build --progress=plain --secret id=uv_index_siriuspython_password,env=AZURE_ARTIFACTS_PAT --build-arg UV_INDEX_SIRIUSPYTHON_USERNAME=VssSessionToken -f docker/Dockerfile  -t " .. current_dir .. ":latest"
     else
       -- Fallback to the default system 'make' utility
