@@ -3,29 +3,11 @@
 --
 -- See the kickstart.nvim README for more information
 
----@module 'lazy'
----@type LazySpec
-return {
-  require 'custom.plugins.conform-nvim',
-  require 'custom.plugins.everforest',
-  require 'custom.plugins.coverage-nvim',
-  require 'custom.plugins.csvview-nvim',
-  require 'custom.plugins.flash-nvim',
-  require 'custom.plugins.haunt-nvim',
-  require 'custom.plugins.lazygit',
-  require 'custom.plugins.markdown',
-  require 'custom.plugins.persistence-nvim',
-  require 'custom.plugins.trouble-nvim',
-  require 'custom.plugins.sidekick-nvim',
-  require 'custom.plugins.jupynvim',
-  require 'custom.plugins.videre-nvim',
-  require 'custom.plugins.99-nvim',
-  require 'custom.plugins.blink-compat',
-  require 'custom.plugins.copilot',
-  require 'custom.plugins.copilot-chat',
-  require 'custom.plugins.neotest-python',
-  require 'custom.plugins.neotest',
-  require 'custom.plugins.zen',
-  require 'custom.plugins.obsidian-nvim',
-  require 'custom.plugins.present',
-}
+-- Iterate over all Lua files in the plugins directory and load them
+local plugins_dir = vim.fs.joinpath(vim.fn.stdpath 'config', 'lua', 'custom', 'plugins')
+for file_name, type in vim.fs.dir(plugins_dir, { follow = true }) do
+  if (type == 'file' or type == 'link') and file_name:match '%.lua$' and file_name ~= 'init.lua' then
+    local module = file_name:gsub('%.lua$', '')
+    require('custom.plugins.' .. module)
+  end
+end

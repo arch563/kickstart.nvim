@@ -1,12 +1,7 @@
-return {
-  'Owen-Dechow/videre.nvim',
-  cmd = 'Videre',
-  dependencies = {
-    'Owen-Dechow/graph_view_yaml_parser', -- Optional: add YAML support
-    'Owen-Dechow/graph_view_toml_parser', -- Optional: add TOML support
-    'a-usr/xml2lua.nvim', -- Optional | Experimental: add XML support
-  },
-  opts = {
-    box_style = 'sharp',
-  },
+local util = require 'custom.util'
+
+util.add { util.gh 'Owen-Dechow/videre.nvim', util.gh 'Owen-Dechow/graph_view_yaml_parser', util.gh 'Owen-Dechow/graph_view_toml_parser', util.gh 'a-usr/xml2lua.nvim' }
+
+require('videre').setup {
+  box_style = 'sharp',
 }
